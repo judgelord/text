@@ -1,5 +1,5 @@
 ---
-title: "examples"
+title: "examples: wordcloud() with tidytext"
 output:
   html_document:
     code_folding: "hide"
