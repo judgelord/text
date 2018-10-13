@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, fig.path='Figs/', eval.after = 'fig.cap')
+knitr::opts_chunk$set(message = FALSE, fig.path='Figs/')
 library(here)
 library(tidyverse)
 library(magrittr)
@@ -20,10 +20,10 @@ library(RColorBrewer)
 d <- full_join(read.csv(here("datasets","demdislike.csv")),
                read.csv(here("datasets","repdislike.csv"))
                )
-d$dislikeDems %<>% str_replace_all("[[:punct:]]| like|like |don.t | people|pro | party|party ", " ") %>% tolower() 
+d$dislikeDems %<>% str_replace_all("[[:punct:]]|don.t | like|like | party|party | people|pro ", " ") %>% tolower() 
 ddis <-  unnest_tokens(d, word, dislikeDems)
 
-d$dislikeReps %<>% str_replace_all("[[:punct:]]| like|like |don.t | people|pro | party|party ", " ") %>% tolower() 
+d$dislikeReps %<>% str_replace_all("[[:punct:]]|don.t | like|like | party|party | people|pro ", " ") %>% tolower() 
 rdis <-  unnest_tokens(d, word, dislikeReps)
 
 set.seed(45)
@@ -38,7 +38,7 @@ ddis %>%
   filter(rephatesdems == 1) %>%  
   anti_join(stop_words) %>%
   count(word) %>%
-  with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 100))
+  with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 50, scale=c(4,.3)))
 ```
 
 
@@ -47,7 +47,7 @@ ddis %>%
   filter(demhatesreps == 1) %>%  
   anti_join(stop_words) %>% 
   count(word) %>%
-  with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 100))
+  with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 50, scale=c(4,.3)))
 ```
 
 
@@ -57,7 +57,7 @@ rdis %>%
   filter(rephatesdems == 1) %>% 
   anti_join(stop_words) %>% 
   count(word) %>%
-  with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 100))
+  with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 50, scale=c(4,.3)))
 ```
 
 ```{r dislikereps-demhatesreps, fig.cap = "Democrats who dislike Republicans"}
@@ -65,7 +65,7 @@ rdis %>%
   filter(demhatesreps == 1) %>% 
   anti_join(stop_words) %>%
   count(word) %>%
-  with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 100))
+  with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 50, scale=c(4,.3)))
 ```
 
 
