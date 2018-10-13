@@ -28,8 +28,8 @@ rdis <-  unnest_tokens(d, word, dislikeReps)
 
 set.seed(45)
 ```
+---
 
-<center>
 
 # What do you dislike about Democrats?
 
@@ -40,7 +40,7 @@ ddis %>%
   count(word) %>%
   with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 50, scale=c(4,.3)))
 ```
-
+---
 
 ```{r dislikedems-demhatesreps, fig.cap = "Democrats who dislike Republicans"}
 ddis %>%   
@@ -48,8 +48,8 @@ ddis %>%
   anti_join(stop_words) %>% 
   count(word) %>%
   with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 50, scale=c(4,.3)))
-```
-
+```   
+---
 
 # What do you dislike about Republicans?
 ```{r dislikereps-rephatesdems, fig.cap = "Republicans who dislike Democrats"}
@@ -59,6 +59,7 @@ rdis %>%
   count(word) %>%
   with(wordcloud(word, n, colors=brewer.pal(8, "Reds"), max.words = 50, scale=c(4,.3)))
 ```
+---
 
 ```{r dislikereps-demhatesreps, fig.cap = "Democrats who dislike Republicans"}
 rdis %>%   
@@ -66,12 +67,18 @@ rdis %>%
   anti_join(stop_words) %>%
   count(word) %>%
   with(wordcloud(word, n, colors=brewer.pal(8, "Blues"), max.words = 50, scale=c(4,.3)))
-```
+```   
+
+---
 
 
+
+
+<center>
 
 ### What do you dislike about the Democratic party?
 ![alt text](Figs/dislikedems-demhatesreps-1.png){ width=40% } ![alt text](Figs/dislikedems-rephatesdems-1.png){ width=40% }
+---
 
 ### What do you dislike about the Republican party?
 ![alt text](Figs/dislikereps-demhatesreps-1.png){ width=40% } ![alt text](Figs/dislikereps-rephatesdems-1.png){ width=40% }
