@@ -29,7 +29,11 @@ This reminded me of playing Pictionary with my research lab.
 
 <blockquote class="twitter-tweet"><p lang="en" dir="ltr">After lab meetings, we play <a href="https://t.co/ILwcWbPhT9">https://t.co/ILwcWbPhT9</a> Pictionary 🧑🎨🖼️ using words from our data:<br><br>d %&gt;%<br> unnest_tokens(word, text) %&gt;% <a href="https://twitter.com/hashtag/tidytext?src=hash&amp;ref_src=twsrc%5Etfw">#tidytext</a>!<br> inner_join(get_sentiments(&quot;nrc&quot;)) %&gt;%<br> count(word) %&gt;% <br> slice_sample(n = 100, weight_by = n) %&gt;%<br> .$word %&gt;%<br> str_c(collapse = &quot;, &quot;) <a href="https://t.co/MIobNupp03">pic.twitter.com/MIobNupp03</a></p>&mdash; Devin Judge-Lord (@JudgeLord) <a href="https://twitter.com/JudgeLord/status/1275158859485773824?ref_src=twsrc%5Etfw">June 22, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-# Let's grab some words from the APSA 2020 program.
+
+
+# Methods
+
+## Let's grab some words from the APSA 2020 program.
 
 Scraping websites with `rvest` is easy! (I'll also use `tidyverse` and `magritter` functions here.)
 
@@ -90,6 +94,8 @@ d %<>% slice_tail(n = nrow(d)-14)
 
 d
 ```
+
+# Results
 
 Now that we have a tidy dataframe with a column of text, the world is our oyster. 
 
