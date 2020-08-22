@@ -1,0 +1,125 @@
+---
+title: "Scrape the APSA 2020 online program with `rvest`"
+subtitle: "(because we are nerds who want to play Pictionary)"
+author: 
+output:
+    html_document:
+      #toc: true
+      #toc_float: true
+      #code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r options, echo = FALSE, warning=FALSE, message = FALSE, code_folding = "hide"}
+## Modify some defaults for this example
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+library(magrittr)
+library(tidyverse)
+```
+
+# Motivation
+
+Devon Cantwell had a fun idea.
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Anyone interested in a virtual happy hour for grad students at APSA in a few weeks? I can organize a few games and we can keep it to like an hour or so! You wouldn’t have to be presenting or registered to participate either!</p>&mdash; Devon Cantwell (@devon_cantwell) <a href="https://twitter.com/devon_cantwell/status/1297125769773293569?ref_src=twsrc%5Etfw">August 22, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+This reminded me of playing Pictionary with my research lab.
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">After lab meetings, we play <a href="https://t.co/ILwcWbPhT9">https://t.co/ILwcWbPhT9</a> Pictionary 🧑🎨🖼️ using words from our data:<br><br>d %&gt;%<br> unnest_tokens(word, text) %&gt;% <a href="https://twitter.com/hashtag/tidytext?src=hash&amp;ref_src=twsrc%5Etfw">#tidytext</a>!<br> inner_join(get_sentiments(&quot;nrc&quot;)) %&gt;%<br> count(word) %&gt;% <br> slice_sample(n = 100, weight_by = n) %&gt;%<br> .$word %&gt;%<br> str_c(collapse = &quot;, &quot;) <a href="https://t.co/MIobNupp03">pic.twitter.com/MIobNupp03</a></p>&mdash; Devin Judge-Lord (@JudgeLord) <a href="https://twitter.com/JudgeLord/status/1275158859485773824?ref_src=twsrc%5Etfw">June 22, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+# Let's grab some words from the APSA 2020 program.
+
+Scraping websites with `rvest` is easy! (I'll also use `tidyverse` and `magritter` functions here.)
+
+```{r}
+library(rvest)
+html <- read_html("https://UN.org") # The UN homepage
+links <- html_nodes(html, "a") # "a" nodes are linked text
+html_text(links)
+```
+
+...until websites get fancy and redirect to a page requiring user input.
+
+In this case, APSA makes us select a timezone:
+```{r}
+url <- "https://convention2.allacademic.com/one/apsa/apsa20/"
+
+read_html(url) %>% 
+  html_nodes("p") %>% # "p" nodes are paragraph text
+  html_text()
+
+read_html(url) %>% 
+  html_nodes("a") %>% # "a" nodes are linked text
+  html_text()
+```
+
+So, we must set a timezone for our session. `rvest` has several tools that allow us to submit web forms. 
+```{r session}
+mysession <- html_session(url)
+
+timzone_form <- html_form(mysession)[[1]]
+
+timzone_form %<>% set_values(new_timezone = "Africa/Abidjan")
+
+submit_form(mysession, timzone_form)
+```
+
+After providing our newly-created browser session info, we can now navitgate to APSA's "Created Panels" page with `rvest`'s `follow_link` function. We can then read the html and grab the linked text nodes. 
+```{r navigate}
+html <- jump_to(mysession, url) %>% 
+  follow_link("Browse By Session or Event Type") %>%
+  follow_link("Created Panel") %>%
+  read_html()
+
+links <- html_nodes(html, "a") # "a" nodes are linked text
+
+html_text(links) %>% head(20)
+```
+
+`html_text` extracts text from HTML nodes. On this page the linked text is the title of each paper (except for the first 14 links). Linked URLs are in the "href" HTML attribute.
+
+Let us put both into a tidy dataframe:
+```{r dataframe}
+d <- tibble(titles = html_text(links) %>% str_remove_all(".*TBA|Sub Unit.*"),
+            links = html_attr(links, "href") )
+
+# drop the first few rows that are not papers
+d %<>% slice_tail(n = nrow(d)-14)
+
+d
+```
+
+Now that we have a tidy dataframe with a column of text, the world is our oyster. 
+
+To play Pictionary, we just need a sample of common words. The `tidytext` package has a number of helpful tools for doing this. Most importantly, `unnest_tokens` "tokenizes" text--here breaking it up by word. `filter`, `count`, and `slice` from `dplyr` help us clean up, sample, and collapse these words into a block of text.
+
+> Tip: for messy text: try keeping only words in the NRC dictionary `inner_join(get_sentiments("nrc"))`
+
+```{r words}
+library(tidytext)
+
+d %>%
+  # get words from a column "titles"
+  unnest_tokens(word, titles) %>% 
+  # remove common words (such as "the")
+  anti_join(stop_words) %>%
+  # filter out words less than 4 letters or with apostrophes
+  filter(nchar(word)>4, !str_detect(word, "\\'") ) %>%
+  # sample 100 words, weighted by their frequency
+  count(word) %>% 
+  slice_sample(n = 500, weight_by = n) %>%
+  # collapse to a block of text, separate words with commas
+  .$word %>%
+  str_c(collapse = ", ")
+```
+
+<!--
+
+# APSA papers on created panels
+
+```{r papers}
+knitr::kable(d)
+```
+-->
