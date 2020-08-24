@@ -1,9 +1,10 @@
 ---
 title: "Scrape the APSA 2020 online program with `rvest`"
-subtitle: "(because we are nerds who want to play Pictionary)"
+subtitle: "(because we are nerds who want to play pictionary)"
 author: 
 output:
     html_document:
+      highlight: zenburn
       #toc: true
       #toc_float: true
       #code_folding: hide
@@ -37,35 +38,29 @@ This reminded me of playing Pictionary with my research lab.
 
 Scraping websites with `rvest` is easy! (I'll also use `tidyverse` and `magritter` functions here.)
 
-```{r}
+A fun minimal example is the UN website: 
+```{r un, attr.output='style="max-height: 100px;"'}
 library(rvest)
+
 html <- read_html("https://UN.org") # The UN homepage
 links <- html_nodes(html, "a") # "a" nodes are linked text
 html_text(links)
 ```
 
-...until websites get fancy and redirect to a page requiring user input.
 
-In this case, APSA makes us select a timezone:
-```{r}
+APSA complicates things by making us select a timezone:
+```{r apsa, attr.output='style="max-height: 100px;"'}
 url <- "https://convention2.allacademic.com/one/apsa/apsa20/"
 
-read_html(url) %>% 
-  html_nodes("p") %>% # "p" nodes are paragraph text
-  html_text()
-
-read_html(url) %>% 
-  html_nodes("a") %>% # "a" nodes are linked text
-  html_text()
+read_html(url) %>% html_text()
 ```
 
 So, we must set a timezone for our session. `rvest` has several tools that allow us to submit web forms. 
 ```{r session}
 mysession <- html_session(url)
 
-timzone_form <- html_form(mysession)[[1]]
-
-timzone_form %<>% set_values(new_timezone = "Africa/Abidjan")
+timzone_form <- html_form(mysession)[[1]] %>% 
+  set_values(new_timezone = "Africa/Abidjan")
 
 submit_form(mysession, timzone_form)
 ```
@@ -82,41 +77,51 @@ links <- html_nodes(html, "a") # "a" nodes are linked text
 html_text(links) %>% head(20)
 ```
 
-`html_text` extracts text from HTML nodes. On this page the linked text is the title of each paper (except for the first 14 links). Linked URLs are in the "href" HTML attribute.
+`html_text` extracts text from HTML nodes. On this page the linked text is the title of each panel (except for the first 14 links). 
 
-Let us put both into a tidy dataframe:
+To clean up the panel titles, I remove all text before "TBA" or after "Sub Unit" using the one [regular expression](https://stringr.tidyverse.org/articles/regular-expressions.html) to rule them all `.*`, which matches anything (`.`) anynumber of times (`*`).
+
+`html_attr` extracts other HTML attributes. Linked URLs are in the "href" attribute.
+
+Let's put both into a tidy dataframe:
 ```{r dataframe}
-d <- tibble(titles = html_text(links) %>% str_remove_all(".*TBA|Sub Unit.*"),
-            links = html_attr(links, "href") )
+d <- tibble(title = html_text(links) %>% 
+              str_remove_all(".*TBA|Sub Unit.*"),
+            url = html_attr(links, "href") 
+            )
 
-# drop the first few rows that are not papers
-d %<>% slice_tail(n = nrow(d)-14)
+# filter to rows that contain a "session_id" in their URL
+d %<>% filter( str_detect(url, "session_id") )
 
 d
 ```
 
 # Results
 
-Now that we have a tidy dataframe with a column of text, the world is our oyster. 
+Now that we have a tidy dataframe with a column of text, the world is our oyster. We could follow each URL to get more details on each panel using `purrr`s `map_dfr` like I did [here](https://judgelord.github.io/correspondence/functions/DOE_FERC-company-scraper.html), but I should get back to writing my APSA paper.
 
-To play Pictionary, we just need a sample of common words. The `tidytext` package has a number of helpful tools for doing this. Most importantly, `unnest_tokens` "tokenizes" text--here breaking it up by word. `filter`, `count`, and `slice` from `dplyr` help us clean up, sample, and collapse these words into a block of text.
+For pictionary, we just need a sample of common words. The `tidytext` package has a number of helpful tools for doing this. Most importantly, `unnest_tokens` "tokenizes" text--here breaking it up by word. `filter`, `count`, and `slice` from `dplyr` help us clean up, sample, and collapse these words into a block of text.
 
-> Tip: for messy text: try keeping only words in the NRC dictionary `inner_join(get_sentiments("nrc"))`
+> Tip: to get drawable words from messier text, try keeping only words in the NRC dictionary by adding `inner_join(get_sentiments("nrc"))` anywhere between unnesting and sampling them. 
 
-```{r words}
+```{r words, attr.output='style="max-height: 100px;"'}
 library(tidytext)
 
-d %>%
-  # get words from a column "titles"
-  unnest_tokens(word, titles) %>% 
+word_counts <- d %>%
+  # get words from a column "title"
+  unnest_tokens(word, title) %>% 
   # remove common words (such as "the")
   anti_join(stop_words) %>%
-  # filter out words less than 4 letters or with apostrophes
-  filter(nchar(word)>4, !str_detect(word, "\\'") ) %>%
-  # sample 100 words, weighted by their frequency
-  count(word) %>% 
+  # filter out words less than 5 letters or with apostrophes
+  filter( nchar(word) > 5, !str_detect(word, "\\'") ) %>%
+  # sample 500 words, weighted by their frequency
+  count(word)
+
+word_counts %>% arrange(-n)
+
+word_counts %>% 
   slice_sample(n = 500, weight_by = n) %>%
-  # collapse to a block of text, separate words with commas
+  # collapse to a block of text, separating words with commas
   .$word %>%
   str_c(collapse = ", ")
 ```
