@@ -104,7 +104,7 @@ For pictionary, we just need a sample of common words. The `tidytext` package ha
 
 > Tip: to get drawable words from messier text, try keeping only words in the NRC dictionary by adding `inner_join(get_sentiments("nrc"))` anywhere between unnesting and sampling them. 
 
-```{r words, attr.output='style="max-height: 100px;"'}
+```{r words, attr.output='style="max-height: 700px;"'}
 library(tidytext)
 
 word_counts <- d %>%
